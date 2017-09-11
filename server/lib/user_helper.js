@@ -14,8 +14,6 @@ module.exports = {
   },
 
   getUserByName: function(username) {
-    console.log('searching users', users);
-    console.log('for username', username);
     var foundUser = _.find(users, function(user) {
       return user.username === username;
     });
@@ -25,7 +23,7 @@ module.exports = {
   },
 
   createUser: function(userInfo) {
-    var requiredFields = [ "username", "password", "firstName", "ssn"];
+    var requiredFields = [ 'username', 'password'];
     var missingFields = [];
     requiredFields.forEach(function(field) {
       if (!userInfo[field]) {
@@ -35,15 +33,15 @@ module.exports = {
 
     if (missingFields.length > 0) {
       return {
-        message: "Cannot create user without the following fields " + util.inspect(missingFields)
-      }
+        message: 'Cannot create user without the following fields ' + util.inspect(missingFields)
+      };
     };
 
     var existingUser = module.exports.getUserByName(userInfo.username);
     if (existingUser) {
       return {
-        message: "User already exists"
-      }
+        message: 'User already exists'
+      };
     }
 
     var newUser = _.cloneDeep(userInfo);
@@ -51,6 +49,28 @@ module.exports = {
     users.push(newUser);
 
     return newUser;
+  },
+
+  createWidget: function(userId, widgetInfo) {
+    let user = module.exports.getUser(userId);
+    if (!user) {
+      return {
+        message: `cannot create widget for user ${userId}`
+      };
+    }
+    if (!widgetInfo.widgetType) {
+      return {
+        message: 'Cannot create widget without widget type'
+      };
+    }
+
+    widgetInfo.id = uuid.v4();
+    if (!user.widgets) {
+      user.widgets = [widgetInfo];
+    } else {
+      user.widgets.push(widgetInfo);
+    }
+    return widgetInfo;
   }
 
-}
+};

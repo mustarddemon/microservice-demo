@@ -6,7 +6,7 @@ var app = express();
 
 //Specifies where views are located and using jade engine
 app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'jade');
+app.set('view engine', 'pug');
 
 //Specifies root path and where routes are defined
 app.use('/', routes);
@@ -15,4 +15,4 @@ app.use('/', routes);
 app.use(express.static(path.join(__dirname, 'public')));
 
 //Uses Port 3000 if no DEV_PORT env variable is set
-app.listen(process.env.DEV_PORT || 3000);
+app.listen(process.env.PORT || 3000);
