@@ -24,7 +24,7 @@ const methods = {
 
   //For every record retrieved delete it from the pool
   getRecordFromPool: function(poolName) {
-    winston.debug(`Retrieving record from ${poolName} for env ${env}`);
+    winston.debug(`Retrieving record from ${poolName}`);
 
     //You can pass env in to store data per environment
     //querying in mongo at a simple level is just an object
@@ -68,13 +68,15 @@ const methods = {
   },
 
   emptyPool: function(poolName) {
-    if (!env || !poolName) {
-      return Promise.reject(new Error('Cannot empty pool without env and poolname'));
+    if (!poolName) {
+      return Promise.reject(new Error('Cannot empty pool without poolname'));
     }
-    const query = { env: env };
+    //Can update to support environments with simple query
+    // const query = { env: env };
+    const query = {};
     return testDb.getDb('data-pools')
       .then(function(db) {
-        winston.debug(`Clearing out pool: ${poolName} for env ${env}`);
+        winston.debug(`Clearing out pool: ${poolName} `);
         return db.collection(poolName)
           .remove(query);
       });

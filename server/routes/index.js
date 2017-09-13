@@ -45,10 +45,6 @@ router.get('/users', function(req, res) {
     Authorization: 'oauth token'
   };
 
-  let domain = yourHelper.getDomain();
-  let path = yourHelper.buildPath(userTemplate);
-  let body = yourHelper.buildBody(userTemplate);
-
   //make a request to create a user
   return request(domain)
   .post(path)
