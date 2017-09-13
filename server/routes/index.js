@@ -10,6 +10,7 @@ const poolsStorage = require('../lib/pool_storage');
 const poolsDb = require('../lib/poolsDb');
 const oracleQueryHelper = require('../lib/oracle_query_helper');
 const mysqlQueryHelper = require('../lib/mysql_query_helper');
+const exec = require('child_process').exec;
 const uuid = require('node-uuid');
 winston.level = process.env.LOG || 'info';
 
@@ -64,12 +65,61 @@ router.get('/createUserUi', function(req, res) {
   return res.render('dataManagement');
 });
 
-router.get('/createThingOnlyThroughTheUi', function(req, res) {
+router.get('/user/:userId/getSomethingFromDb', function(req, res) {
+  let userId = req.params.userId;
+  let daysBack = req.query.daysBack;
+  let query = `select *
+  from user_table
+  where user_id = ${userId}
+  and creation date > sysdate - ${daysBack}`;
 
-    //spawn a process that calls your UI scripts
+  //spawn a process that calls your UI scripts
+  return oracleQueryHelper.runQuery(query)
+  .then(result => {
+    return res.status(200).send({
+      query: query,
+      data: result
+    });
+  });
 });
 
-router.post('/storeResultsFromUI', function(req, res) {
+router.post('/pool/:poolName/storeFromUi', function(req, res) {
+  let poolName = req.params.poolName;
+  let body = req.body || {
+    sample: 'sample data'
+  };
+  winston.log('info', `Received call from UI Test ${req.params.poolName}`);
+  //Endpoint will be called from UI test at completion and put in proper pool
+  return poolsDb.addRecordToPool(poolName, body)
+  .then(() => {
+    return res.status(200).send({
+      ok: true
+    });
+  });
+});
+
+router.get('/executeNwTest', function(req, res) {
+  let testPath = req.query.testPath;
+  let poolName = req.query.poolName;
+
+  if (!testPath || !poolName) {
+    return res.status(400).send({
+      message: 'testPath and poolName query parameters are required'
+    });
+  }
+
+  let cmd = `cd uiFramework; NODE_ENV=qa3 POOLNAME=${poolName} mocha ${testPath}`;
+  cmd = cmd + ' &';
+
+  //execute test command
+  exec(cmd, function(error, stdout, stderr) {
+    if (stderr) {
+      winston.log('warn', `Error happened kicking of UI test ${stderr} ${error}`);
+    } else {
+      winston.log('info', `UI Test ${testPath} successfully completed`);
+    }
+  });
+  return res.status(200).send({ok: true});
 
 });
 
@@ -124,8 +174,8 @@ router.get('/pool/:poolName/entry', function (req, res) {
 //Sample REST API get request
 router.get('/users/:user_id', function(req, res) {
   //Can access variables in path
-  var userId = req.params.user_id;
-  var user = userHelper.getUser(userId);
+  let userId = req.params.user_id;
+  let user = userHelper.getUser(userId);
   if (!user) {
     return res.status(404).send({
       message: `could not find user ${userId}`

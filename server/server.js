@@ -6,11 +6,13 @@ const path = require('path');
 const routes = require('./routes/index');
 const MongoHelper = require('./lib/mongo_helper');
 const testDb = new MongoHelper('data-pools');
+const bodyParser = require('body-parser');
 const app = express();
 
 //Specifies where views are located and using jade engine
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
+app.use(bodyParser.json());
 
 //Specifies root path and where routes are defined
 app.use('/', routes);

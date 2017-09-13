@@ -56,9 +56,6 @@ module.exports = {
         });
       }
       return poolsDb.addRecordToPool(poolName, recordToAdd);
-    })
-    .then(function() {
-      return Promise.resolve();
     });
   },
 
@@ -93,7 +90,7 @@ module.exports = {
       if (count < pool.poolSize) {
         let recordsToCreate = pool.poolSize - count;
         winston.log('debug', `Count is less than pool size will shore up and create ${recordsToCreate} new records`);
-        //build a simple array counting out the number of creations to take place
+        //build a simple array of functions to execute in a series
         for (let i = 0; i < recordsToCreate; i++) {
           promises.push(function() {
             return self.delayedCreatePoolEntry(poolName);
