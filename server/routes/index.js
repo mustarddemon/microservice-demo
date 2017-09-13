@@ -1,17 +1,16 @@
 const util = require('util');
 const winston = require('winston');
 const express = require('express');
-const Promise = require('bluebird');
 const request = require('supertest');
 const router = express.Router();
 const bodyParser = require('body-parser');
 const jsonParser = bodyParser.json();
-const urlEncodedParser = bodyParser.urlencoded({ extended: false });
 const userHelper = require('../lib/user_helper');
 const poolsStorage = require('../lib/pool_storage');
 const poolsDb = require('../lib/poolsDb');
 const oracleQueryHelper = require('../lib/oracle_query_helper');
 const mysqlQueryHelper = require('../lib/mysql_query_helper');
+const uuid = require('node-uuid');
 winston.level = process.env.LOG || 'info';
 
 
@@ -36,7 +35,7 @@ router.get('/users', function(req, res) {
   let domain = 'localhost:3000';
   let path = '/users';
   let body = {
-    username: 'nick' + Date.now(),
+    username: 'nick' + uuid.v4(),
     password: 'welcome'
   };
 
@@ -53,7 +52,7 @@ router.get('/users', function(req, res) {
   .then(function (response) {
     if (response.statusCode !== 201) {
       return res.status(500).send({
-        message: 'downstream attempt to call server failed'
+        message: `downstream attempt to call server failed with ${response.statusCode} ${util.inspect(response.body)}`
       });
     }
     return res.status(200).send(response.body);
@@ -72,6 +71,14 @@ router.get('/createThingOnlyThroughTheUi', function(req, res) {
 
 router.post('/storeResultsFromUI', function(req, res) {
 
+});
+
+router.delete('/pool/:poolName', function(req, res) {
+  let poolName = req.params.poolName;
+  return poolsDb.emptyPool(poolName)
+  .then(() => {
+    return res.status(200).send({ok: true});
+  });
 });
 
 router.get('/pool/:poolName/entry', function (req, res) {

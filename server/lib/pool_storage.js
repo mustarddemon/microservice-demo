@@ -10,7 +10,7 @@ winston.level = process.env.LOG || 'info';
 module.exports = {
 
   loadConfig: function(poolName) {
-    var pool = pools[poolName];
+    let pool = pools[poolName];
     if (!pool) {
       throw new Error(`Cannot load pool information no pool with name ${poolName} exists`);
     }
@@ -62,38 +62,46 @@ module.exports = {
     });
   },
 
+  delayedCreatePoolEntry: function(poolName) {
+    let self = this;
+    //WE use 'new' Promise here because setTimeout is asynchronous using callbacks and this is how we wrap it in a promise
+    return new Promise(function(resolve) {
+      setTimeout(function() {
+        winston.log('debug', 'Creating new entry');
+        return self.createPoolEntry(poolName)
+        .then(resolve)
+        .catch(function(err) {
+          winston.log('warn', `CAUGHT ERROR CREATING ENTRY ${util.inspect(err)}`);
+          //we resolve here instead of reject because we want to keep trying to create the other entries
+          return resolve(err);
+        });
+      }, 3000);
+    });
+
+  },
+
   shoreUpPool: function(poolName) {
     //TODO this will change to use rabbit MQ when we are set up
     winston.log('debug', `Shoring up pool ${poolName}`);
-    var self = this;
-    var pool = self.loadConfig(poolName);
+    let self = this;
+    let pool = self.loadConfig(poolName);
     //Get a count of current records in the pool
     return poolsDb.getCountForPool(poolName)
     .then(function(count) {
       winston.log('debug', `Count for pool ${poolName} is ${count}`);
-      var promises = [];
+      let promises = [];
       if (count < pool.poolSize) {
-        var recordsToCreate = pool.poolSize - count;
+        let recordsToCreate = pool.poolSize - count;
         winston.log('debug', `Count is less than pool size will shore up and create ${recordsToCreate} new records`);
         //build a simple array counting out the number of creations to take place
-        while (recordsToCreate-- > 0) {
-          promises.push(recordsToCreate);
-        }
-
-        //Promise.each will create an array of promises but run them sequentially
-        return Promise.each(promises, function() {
-          //WE use 'new' Promise here because setTimeout is asynchronous using callbacks and this is how we wrap it in a promise
-          return new Promise(function(resolve) {
-            setTimeout(function() {
-              winston.log('debug', 'Creating new entry');
-              return self.createPoolEntry(poolName)
-              .then(resolve)
-              .catch(function(err) {
-                winston.log('warn', `CAUGHT ERROR CREATING ENTRY ${util.inspect(err)}`);
-                return resolve(err);
-              });
-            }, 10000);
+        for (let i = 0; i < recordsToCreate; i++) {
+          promises.push(function() {
+            return self.delayedCreatePoolEntry(poolName);
           });
+        }
+        //Promise.each will create an array of promises but run them sequentially
+        return Promise.each(promises, promise => {
+          promise();
         });
       }
     });

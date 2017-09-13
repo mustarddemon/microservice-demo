@@ -1,9 +1,8 @@
-var Promise = require('bluebird');
-var mysql = require('mysql');
-var winston = require('winston');
-var dbConfig = require('../../config/mySqlDbConfig');
-var logLevel = process.env.LOG || 'info';
-winston.level = logLevel;
+const Promise = require('bluebird');
+const mysql = require('mysql');
+const winston = require('winston');
+const dbConfig = require('../../config/mySqlDbConfig');
+winston.level = process.env.LOG || 'info';
 
 process.on('SIGINT',function(){
   process.exit(0);

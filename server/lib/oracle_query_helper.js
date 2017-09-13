@@ -1,9 +1,8 @@
-var Promise = require('bluebird');
-var oracledb = require('oracledb');
-var winston = require('winston');
-var dbConfig = require('../../config/oracleDbConfig');
-var logLevel = process.env.LOG || 'info';
-winston.level = logLevel;
+const Promise = require('bluebird');
+const oracledb = require('oracledb');
+const winston = require('winston');
+const dbConfig = require('../../config/oracleDbConfig');
+winston.level = process.env.LOG || 'info';
 
 process.on('SIGINT',function(){
   process.exit(0);
@@ -32,7 +31,7 @@ module.exports = {
               return reject(err2 || err);
             });
           }
-          var records = result.rows;
+          let records = result.rows;
           return connection.release(function(err) {
             if (err) {
               winston.log('warn', 'error releasing connection');
