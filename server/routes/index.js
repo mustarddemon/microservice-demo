@@ -1,13 +1,18 @@
-var express = require('express');
-var Promise = require('bluebird');
-var request = require('supertest');
-var router = express.Router();
-var bodyParser = require('body-parser');
-var jsonParser = bodyParser.json();
-var urlEncodedParser = bodyParser.urlencoded({ extended: false });
-var userHelper = require('../lib/user_helper');
-var oracleQueryHelper = require('../lib/oracle_query_helper');
-var mysqlQueryHelper = require('../lib/mysql_query_helper');
+const util = require('util');
+const winston = require('winston');
+const express = require('express');
+const Promise = require('bluebird');
+const request = require('supertest');
+const router = express.Router();
+const bodyParser = require('body-parser');
+const jsonParser = bodyParser.json();
+const urlEncodedParser = bodyParser.urlencoded({ extended: false });
+const userHelper = require('../lib/user_helper');
+const poolsStorage = require('../lib/pool_storage');
+const poolsDb = require('../lib/poolsDb');
+const oracleQueryHelper = require('../lib/oracle_query_helper');
+const mysqlQueryHelper = require('../lib/mysql_query_helper');
+winston.level = process.env.LOG || 'info';
 
 
 /* GET home page. */
@@ -18,33 +23,38 @@ router.get('/', function(req, res) {
 });
 
 //createUser?userTemplate=developerRoleWithSomething
-router.get('/createUser', function(req, res) {
-  var userTemplate = req.query.userTemplate;
+router.get('/users', function(req, res) {
+  //All good apis should have error handling
+  let userTemplate = req.query.userTemplate;
   if (!userTemplate) {
     return res.status(400).send({
       message: 'userTemplate is required and must be one of consumer or internal'
     });
   }
 
-  var domain = 'localhost:3000';
-  var path = '/users';
-  var body = {
+  //Consolidate data needed for user creation to simplify
+  let domain = 'localhost:3000';
+  let path = '/users';
+  let body = {
     username: 'nick' + Date.now(),
     password: 'welcome'
   };
 
-  var headers = {
+  //Handle authorization to simplify request
+  let headers = {
     Authorization: 'oauth token'
   };
 
+  let domain = yourHelper.getDomain();
+  let path = yourHelper.buildPath(userTemplate);
+  let body = yourHelper.buildBody(userTemplate);
+
   //make a request to create a user
-  console.log('making request to ' + domain + path);
   return request(domain)
   .post(path)
   .set(headers)
   .send(body)
   .then(function (response) {
-    console.log('GOT RESPONSE', response.body);
     if (response.statusCode !== 201) {
       return res.status(500).send({
         message: 'downstream attempt to call server failed'
@@ -56,6 +66,7 @@ router.get('/createUser', function(req, res) {
 });
 
 router.get('/createUserUi', function(req, res) {
+  return res.render('dataManagement');
 });
 
 router.get('/createThingOnlyThroughTheUi', function(req, res) {
@@ -65,32 +76,44 @@ router.get('/createThingOnlyThroughTheUi', function(req, res) {
 
 router.post('/storeResultsFromUI', function(req, res) {
 
-})
-
-router.get('/pool/:poolName/entry', function(req, res) {
-
-  //TBD
-
 });
 
+router.get('/pool/:poolName/entry', function (req, res) {
+  let poolName = req.params.poolName;
 
+  winston.log('debug', 'loading config for pool ' + poolName);
+  let pool = poolsStorage.loadConfig(poolName);
+  winston.log('debug', `loaded pool info ${util.inspect(pool)}`);
 
-//create/cancelled/widget?userType=asdf
-// router.get('create/:status/widget', function(req, res) {
-//   let status = req.params.status;
-//   //userTemplate
-//   //widget props
-//   //widget status cancelled or out of stock
-//
-//   var resultObject = {};
-//   //make a call to localhost:3000/users
-//   resultObject.user = response.body;
-//   //make a call to localhost:3000/user/:userId/widget
-//   resultObject.widget = response.body;
-//
-//   //make a call to set the state of the widget
-//
-// });
+  //Get count of pool
+  return poolsDb.getCountForPool(poolName)
+  .then(function(count) {
+    winston.log('debug', `Received count ${count}`);
+    if (count === 0) {
+      //create it through normal means if pool is empty
+      let createUrl = pool.createUrl;
+      winston.log('debug', `No entries exist for pool ${poolName} will shore up and create directly through ${createUrl}`);
+      poolsStorage.shoreUpPool(poolName);
+      return res.status(404).send({
+        message: `Data Pools for ${poolName} are empty will try to refill try again in a few minutes.`
+      });
+    } else {
+      //Get the entry from the pool
+      return poolsStorage.getEntry(poolName);
+    }
+  })
+  .then(function(entry) {
+    //this will run behind the scenes
+    poolsStorage.shoreUpPool(poolName);
+    return res.status(200).send(entry.data);
+  })
+  .catch(function(err) {
+    return res.status(500).send({
+      message: `ERROR: Failed to create or retrieve entry with error ${util.inspect(err)}`
+    });
+  });
+
+});
 
 
 //***************************************************************************

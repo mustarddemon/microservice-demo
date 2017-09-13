@@ -1,6 +1,6 @@
 {
 	"name": "sample-node-server",
-	"description": "Sample Node Server with API and home page",
+	"description": "Demo Microservice With Mongo & DB Connectivity",
 	"version": "0.0.1",
 	"scripts": {
 	},
@@ -24,6 +24,8 @@
 		"body-parser": "1.15.1",
 		"winston": "2.3.1",
 		"dateformat": "1.0.12",
+		"bluebird-retry": "^0.10.1",
+		"mongodb": "^2.2.26",
 		"node-uuid": "1.4.7"
 	}
 }

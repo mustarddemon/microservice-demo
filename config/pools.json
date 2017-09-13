@@ -1,0 +1,10 @@
+{
+  "internalUsers": {
+    "createUrl": "/users?userTemplate=internal",
+    "poolSize": 10
+  },
+  "outsideUsers": {
+    "createUrl": "/users?userTemplate=external",
+    "poolSize": 10
+  }
+}

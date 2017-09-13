@@ -1,0 +1,13 @@
+h1 Data Creation Management UI
+
+
+table.mainTable
+  tr
+    th Create Action
+    th
+  tr
+    td Ceate a new user
+    td
+      form(method='GET' action='/users')
+        input(type='text' name='userTemplate' id='userTemplate' value='userType')
+        input(type='submit')

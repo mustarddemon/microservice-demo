@@ -1,0 +1,6 @@
+{
+  "host": "10.1.0.999",
+  "user": "username",
+  "password": "password",
+  "database": "whichDb"
+}
